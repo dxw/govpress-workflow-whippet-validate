@@ -2,12 +2,19 @@ name: Validate Whippet files
 
 on: 
   workflow_call:
+    secrets:
+      GH_ACCOUNT_TOKEN:
+        required: true
 
 jobs:
   whippet-deps:
+    permissions:
+      pull-requests: write
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
+        with:
+          token: ${{ secrets.GH_ACCOUNT_TOKEN }}
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
@@ -26,3 +33,71 @@ jobs:
         run: composer install --no-interaction
       - name: Run Whippet deps validate
         run: vendor/bin/whippet deps validate
+      - name: Check for changes to whippet.lock
+        if: github.event_name == 'pull_request'
+        uses: dorny/paths-filter@v2
+        id: whippet_lock_change
+        with:
+          filters: |
+            src:
+              - 'whippet.lock'
+      - name: authenticate with GitHub CLI and setup git
+        if: steps.whippet_lock_change.outputs.src == 'true' && github.event_name == 'pull_request'
+        run: |
+          echo "${{ secrets.GH_ACCOUNT_TOKEN }}" | gh auth login --with-token -p https
+          gh auth setup-git
+          git config --global url."https://github.com/".insteadOf 'git@github.com:'
+      - name: Whippet describe current branch
+        if: steps.whippet_lock_change.outputs.src == 'true' && github.event_name == 'pull_request'
+        run: |
+          if test -f "whippet.lock"; then
+            EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
+            echo "DESCRIBE_PR_BRANCH<<$EOF" >> "$GITHUB_ENV"
+            vendor/bin/whippet deps describe >> "$GITHUB_ENV"
+            echo -e "\n" >> "$GITHUB_ENV"
+            echo "$EOF" >> "$GITHUB_ENV"
+          else
+            echo "DESCRIBE_PR_BRANCH=''" >> "$GITHUB_ENV"
+          fi
+      - name: Checkout target branch
+        if: steps.whippet_lock_change.outputs.src == 'true' && github.event_name == 'pull_request'
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.pull_request.base.ref }}
+          token: ${{ secrets.GH_ACCOUNT_TOKEN }}
+      - name: Install target branch dependencies
+        if: steps.whippet_lock_change.outputs.src == 'true' && github.event_name == 'pull_request' 
+        run: composer install --no-interaction
+      - name: Whippet describe target branch
+        if: steps.whippet_lock_change.outputs.src == 'true' && github.event_name == 'pull_request'
+        run: |
+          if test -f "whippet.lock"; then
+            EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
+            echo "DESCRIBE_TARGET_BRANCH<<$EOF" >> "$GITHUB_ENV"
+            vendor/bin/whippet deps describe >> "$GITHUB_ENV"
+            echo -e "\n" >> "$GITHUB_ENV"
+            echo "$EOF" >> "$GITHUB_ENV"
+          else
+            echo "DESCRIBE_TARGET_BRANCH=''" >> "$GITHUB_ENV"
+          fi
+      - name: Diff the describes
+        if: steps.whippet_lock_change.outputs.src == 'true' && github.event_name == 'pull_request'
+        run: |
+          set +e
+          this_diff=$(diff <(echo "$DESCRIBE_TARGET_BRANCH") <(echo "$DESCRIBE_PR_BRANCH") -u)
+          set -e
+          EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
+          echo "WHIPPET_DIFF<<$EOF" >> "$GITHUB_ENV"
+          echo "$this_diff" >> "$GITHUB_ENV"
+          echo -e "\n" >> "$GITHUB_ENV"
+          echo "$EOF" >> "$GITHUB_ENV"
+      - name: Add the comment
+        if: github.event_name == 'pull_request' && env.WHIPPET_DIFF != ''
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: whippet_lock_changes
+          message: |
+            Changes to `whippet.lock` detected. The following version changes will be applied:
+            ```diff
+            ${{ env.WHIPPET_DIFF }}
+            ```
