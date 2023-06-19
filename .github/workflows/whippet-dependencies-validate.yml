@@ -46,7 +46,7 @@ jobs:
         if: steps.whippet_lock_change.outputs.src == 'true' && github.event_name == 'pull_request'
         run: |
           gh auth setup-git
-          git config --global url."https://github.com/".insteadOf 'git@github.com:'
+          git config --global url."https://oauth2:${{ secrets.GH_ACCOUNT_TOKEN }}@github.com/".insteadOf 'git@github.com:'
         env:
           GITHUB_TOKEN: ${{ secrets.GH_ACCOUNT_TOKEN }}
       - name: Whippet describe current branch
