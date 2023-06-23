@@ -10,11 +10,10 @@ jobs:
   whippet-deps:
     permissions:
       pull-requests: write
+      contents: read
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
-        with:
-          token: ${{ secrets.GH_ACCOUNT_TOKEN }}
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
@@ -64,7 +63,6 @@ jobs:
         uses: actions/checkout@v2
         with:
           ref: ${{ github.event.pull_request.base.ref }}
-          token: ${{ secrets.GH_ACCOUNT_TOKEN }}
       - name: Install target branch dependencies
         if: steps.whippet_lock_change.outputs.src == 'true' && github.event_name == 'pull_request' 
         run: composer install --no-interaction
