@@ -42,12 +42,10 @@ jobs:
           filters: |
             src:
               - 'whippet.lock'
-      - name: authenticate with GitHub CLI and setup git
+      - name: authenticate and setup https git
         if: steps.whippet_lock_change.outputs.src == 'true' && github.event_name == 'pull_request'
         run: |
-          echo "${{ secrets.GH_ACCOUNT_TOKEN }}" | gh auth login --with-token -p https
-          gh auth setup-git
-          git config --global url."https://github.com/".insteadOf 'git@github.com:'
+          git config --global url."https://oauth2:${{ secrets.GH_ACCOUNT_TOKEN }}@github.com/".insteadOf 'git@github.com:'
       - name: Whippet describe current branch
         if: steps.whippet_lock_change.outputs.src == 'true' && github.event_name == 'pull_request'
         run: |
