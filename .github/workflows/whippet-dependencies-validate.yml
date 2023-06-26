@@ -4,7 +4,7 @@ on:
   workflow_call:
     secrets:
       GH_ACCOUNT_TOKEN:
-        required: true
+        required: true # Needs read access to all plugin repos
 
 jobs:
   whippet-deps:
