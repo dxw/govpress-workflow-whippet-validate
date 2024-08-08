@@ -109,7 +109,7 @@ jobs:
             ${{ env.WHIPPET_DIFF }}
             ```
       - name: Approve whippet.lock-only PRs
-        if: github.event_name == 'pull_request' && steps.non_whippet_lock_change.outputs.src == 'false' && github.event.pull_request.base.ref == 'develop'
+        if: github.event_name == 'pull_request' && steps.non_whippet_lock_change.outputs.src == 'false' && github.event.pull_request.base.ref == 'develop' && github.event.pull_request.user.login == 'dxw-govpress-tools'
         run: |
           gh pr review ${{ github.event.pull_request.number }} --approve
         env:
