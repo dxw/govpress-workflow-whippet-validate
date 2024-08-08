@@ -42,6 +42,14 @@ jobs:
           filters: |
             src:
               - 'whippet.lock'
+      - name: Check for changes to anything EXCEPT whippet.lock
+        if: github.event_name == 'pull_request'
+        uses: dorny/paths-filter@v2
+        id: non_whippet_lock_change
+        with:
+          filters: |
+            src:
+              - '**/!(whippet.lock)'
       - name: authenticate and setup https git
         if: steps.whippet_lock_change.outputs.src == 'true' && github.event_name == 'pull_request'
         run: |
@@ -100,3 +108,10 @@ jobs:
             ```diff
             ${{ env.WHIPPET_DIFF }}
             ```
+      - name: Approve whippet.lock-only PRs
+        if: github.event_name == 'pull_request' && steps.non_whippet_lock_change.outputs.src == 'false' && github.event.pull_request.base.ref == 'develop'
+        run: |
+          gh pr review --approve
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
