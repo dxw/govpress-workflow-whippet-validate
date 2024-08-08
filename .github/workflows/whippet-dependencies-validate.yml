@@ -109,7 +109,7 @@ jobs:
             ${{ env.WHIPPET_DIFF }}
             ```
       - name: Approve whippet.lock-only PRs
-        if: github.event_name == 'pull_request' && steps.non_whippet_lock_change.outputs.src == 'false'
+        if: github.event_name == 'pull_request' && steps.non_whippet_lock_change.outputs.src == 'false' && github.event.pull_request.base.ref == 'develop'
         run: |
           gh pr review --approve
         env:
