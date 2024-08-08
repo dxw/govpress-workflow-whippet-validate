@@ -33,7 +33,7 @@ jobs:
       - name: Install dependencies
         run: composer install --no-interaction
       - name: Run Whippet deps validate
-        run: vendor/bin/whippet deps validate
+        run: vendor/bin/whippet deps validate -r
       - name: Check for changes to whippet.lock
         if: github.event_name == 'pull_request'
         uses: dorny/paths-filter@v2
