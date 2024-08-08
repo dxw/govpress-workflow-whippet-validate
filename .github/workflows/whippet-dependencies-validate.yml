@@ -111,7 +111,7 @@ jobs:
       - name: Approve whippet.lock-only PRs
         if: github.event_name == 'pull_request' && steps.non_whippet_lock_change.outputs.src == 'false' && github.event.pull_request.base.ref == 'develop'
         run: |
-          gh pr review --approve
+          gh pr review ${{ github.event.pull_request.id }} --approve
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         
