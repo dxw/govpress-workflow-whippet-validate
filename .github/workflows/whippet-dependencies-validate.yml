@@ -11,20 +11,20 @@ jobs:
     permissions:
       pull-requests: write
       contents: read
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.2'
+          php-version: '8.3'
       - name: Get Composer Cache Directory
         id: composer-cache
         run: |
           echo "::set-output name=dir::$(composer config cache-files-dir)"
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
           key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
@@ -36,7 +36,7 @@ jobs:
         run: vendor/bin/whippet deps validate -r
       - name: Check for changes to whippet.lock
         if: github.event_name == 'pull_request'
-        uses: dorny/paths-filter@v2
+        uses: dorny/paths-filter@v4
         id: whippet_lock_change
         with:
           filters: |
@@ -44,7 +44,7 @@ jobs:
               - 'whippet.lock'
       - name: Check for changes to anything EXCEPT whippet.lock
         if: github.event_name == 'pull_request'
-        uses: dorny/paths-filter@v2
+        uses: dorny/paths-filter@v4
         id: non_whippet_lock_change
         with:
           filters: |
@@ -68,7 +68,7 @@ jobs:
           fi
       - name: Checkout target branch
         if: steps.whippet_lock_change.outputs.src == 'true' && github.event_name == 'pull_request'
-        uses: actions/checkout@v2
+        uses: actions/checkout@v7
         with:
           ref: ${{ github.event.pull_request.base.ref }}
           persist-credentials: false
@@ -100,7 +100,7 @@ jobs:
           echo "$EOF" >> "$GITHUB_ENV"
       - name: Add the comment
         if: github.event_name == 'pull_request' && env.WHIPPET_DIFF != ''
-        uses: marocchino/sticky-pull-request-comment@v2
+        uses: marocchino/sticky-pull-request-comment@v3
         with:
           header: whippet_lock_changes
           message: |
